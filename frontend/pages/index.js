@@ -14,17 +14,24 @@ export default function Home() {
   const fetchMovies = async () => {
     try {
       setLoading(true);
+      console.log('Fetching movies...');
+      
       const res = await fetch('/api/movies');
       const data = await res.json();
       
-      if (data.error) {
-        setError(data.error);
+      console.log('API Response:', data);
+      
+      if (data.movies && data.movies.length > 0) {
+        setMovies(data.movies);
+        setError(null);
       } else {
-        setMovies(data.movies || []);
+        setError('No movies found');
       }
+      
       setLoading(false);
     } catch (err) {
-      setError('Failed to load movies');
+      console.error('Fetch error:', err);
+      setError('Failed to load movies: ' + err.message);
       setLoading(false);
     }
   };
@@ -42,6 +49,7 @@ export default function Home() {
       <div style={styles.loadingContainer}>
         <div style={styles.loader}></div>
         <p style={styles.loadingText}>Loading SURFIX...</p>
+        <p style={styles.loadingSubtext}>Fetching movies from database...</p>
       </div>
     );
   }
@@ -49,10 +57,22 @@ export default function Home() {
   if (error) {
     return (
       <div style={styles.errorContainer}>
-        <h2>Error Loading Movies</h2>
-        <p>{error}</p>
+        <h2 style={styles.errorTitle}>⚠️ Error Loading Movies</h2>
+        <p style={styles.errorMessage}>{error}</p>
         <button onClick={fetchMovies} style={styles.retryButton}>
           Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (movies.length === 0) {
+    return (
+      <div style={styles.errorContainer}>
+        <h2 style={styles.errorTitle}>No Movies Found</h2>
+        <p style={styles.errorMessage}>The database is empty. Add some movies to get started.</p>
+        <button onClick={fetchMovies} style={styles.retryButton}>
+          Refresh
         </button>
       </div>
     );
@@ -62,7 +82,7 @@ export default function Home() {
     <div style={styles.container}>
       <Head>
         <title>SURFIX - Watch Free Movies Online</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
       {/* Header */}
@@ -72,149 +92,50 @@ export default function Home() {
           <nav style={styles.nav}>
             <a href="#" style={styles.navLink}>Movies</a>
             <a href="#" style={styles.navLink}>TV Shows</a>
-            <a href="#" style={styles.navLink}>Live TV</a>
           </nav>
-          <button style={styles.searchButton}>
-            🔍
-          </button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section style={styles.hero}>
-        <div style={styles.heroContent}>
-          <h2 style={styles.heroTitle}>Unlimited Movies & TV Shows</h2>
-          <p style={styles.heroSubtitle}>Watch anywhere. Cancel anytime.</p>
-          <button style={styles.heroButton}>Start Watching</button>
-        </div>
-      </section>
+      {/* Movie Count */}
+      <div style={styles.movieCount}>
+        Found {movies.length} movies
+      </div>
 
-      {/* Main Content */}
+      {/* Movies Grid */}
       <main style={styles.main}>
-        {/* Premium Movies Section */}
-        <section style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h3 style={styles.sectionTitle}>
-              Premium Movies <span style={styles.premiumBadge}>PREMIUM</span>
-            </h3>
-            <a href="#" style={styles.viewAll}>View All →</a>
-          </div>
-          
-          <div style={styles.movieGrid}>
-            {movies.slice(0, 10).map((movie, index) => (
-              <Link key={index} href={`/watch/${movie._id}`} style={{ textDecoration: 'none' }}>
-                <div style={styles.movieCard}>
-                  <div style={styles.posterContainer}>
-                    <img 
-                      src={movie.poster || 'https://via.placeholder.com/300x450'}
-                      alt={movie.title}
-                      style={styles.poster}
-                      loading="lazy"
-                    />
-                    <div style={styles.ratingBadge} style={{
-                      ...styles.ratingBadge,
-                      backgroundColor: getRatingColor(movie.rating)
-                    }}>
-                      {movie.rating}
-                    </div>
-                    {index < 3 && (
-                      <div style={styles.premiumTag}>PREMIUM</div>
-                    )}
-                  </div>
-                  <div style={styles.movieInfo}>
-                    <h4 style={styles.movieTitle}>{movie.title}</h4>
-                    <p style={styles.movieYear}>{movie.year}</p>
+        <div style={styles.movieGrid}>
+          {movies.map((movie) => (
+            <Link key={movie._id} href={`/watch/${movie._id}`} style={{ textDecoration: 'none' }}>
+              <div style={styles.movieCard}>
+                <div style={styles.posterContainer}>
+                  <img 
+                    src={movie.poster}
+                    alt={movie.title}
+                    style={styles.poster}
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/300x450?text=No+Poster';
+                    }}
+                  />
+                  <div style={{
+                    ...styles.ratingBadge,
+                    backgroundColor: getRatingColor(movie.rating)
+                  }}>
+                    {movie.rating ? movie.rating.toFixed(1) : 'N/A'}
                   </div>
                 </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Trending Movies Section */}
-        <section style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h3 style={styles.sectionTitle}>🔥 Trending</h3>
-            <a href="#" style={styles.viewAll}>View All →</a>
-          </div>
-          
-          <div style={styles.movieGrid}>
-            {movies.slice(5, 15).map((movie, index) => (
-              <Link key={index} href={`/watch/${movie._id}`} style={{ textDecoration: 'none' }}>
-                <div style={styles.movieCard}>
-                  <div style={styles.posterContainer}>
-                    <img 
-                      src={movie.poster || 'https://via.placeholder.com/300x450'}
-                      alt={movie.title}
-                      style={styles.poster}
-                      loading="lazy"
-                    />
-                    <div style={styles.ratingBadge} style={{
-                      ...styles.ratingBadge,
-                      backgroundColor: getRatingColor(movie.rating)
-                    }}>
-                      {movie.rating}
-                    </div>
-                  </div>
-                  <div style={styles.movieInfo}>
-                    <h4 style={styles.movieTitle}>{movie.title}</h4>
-                    <p style={styles.movieYear}>{movie.year}</p>
-                  </div>
+                <div style={styles.movieInfo}>
+                  <h4 style={styles.movieTitle}>{movie.title}</h4>
+                  <p style={styles.movieYear}>{movie.year}</p>
                 </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Popular Movies Section */}
-        <section style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h3 style={styles.sectionTitle}>📈 Popular</h3>
-            <a href="#" style={styles.viewAll}>View All →</a>
-          </div>
-          
-          <div style={styles.movieGrid}>
-            {movies.slice(10, 20).map((movie, index) => (
-              <Link key={index} href={`/watch/${movie._id}`} style={{ textDecoration: 'none' }}>
-                <div style={styles.movieCard}>
-                  <div style={styles.posterContainer}>
-                    <img 
-                      src={movie.poster || 'https://via.placeholder.com/300x450'}
-                      alt={movie.title}
-                      style={styles.poster}
-                      loading="lazy"
-                    />
-                    <div style={styles.ratingBadge} style={{
-                      ...styles.ratingBadge,
-                      backgroundColor: getRatingColor(movie.rating)
-                    }}>
-                      {movie.rating}
-                    </div>
-                  </div>
-                  <div style={styles.movieInfo}>
-                    <h4 style={styles.movieTitle}>{movie.title}</h4>
-                    <p style={styles.movieYear}>{movie.year}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+              </div>
+            </Link>
+          ))}
+        </div>
       </main>
 
       {/* Footer */}
       <footer style={styles.footer}>
-        <div style={styles.footerContent}>
-          <div style={styles.footerLinks}>
-            <a href="#" style={styles.footerLink}>Home</a>
-            <a href="#" style={styles.footerLink}>Movies</a>
-            <a href="#" style={styles.footerLink}>TV Shows</a>
-            <a href="#" style={styles.footerLink}>Terms</a>
-            <a href="#" style={styles.footerLink}>Privacy</a>
-            <a href="#" style={styles.footerLink}>Contact</a>
-          </div>
-          <p style={styles.copyright}>© 2024 SURFIX. All rights reserved.</p>
-        </div>
+        <p style={styles.copyright}>© 2024 SURFIX</p>
       </footer>
 
       <style jsx>{`
@@ -227,13 +148,12 @@ export default function Home() {
   );
 }
 
-// Styles object
 const styles = {
   container: {
     backgroundColor: '#0f0f0f',
     minHeight: '100vh',
     color: '#fff',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   loadingContainer: {
     minHeight: '100vh',
@@ -255,6 +175,11 @@ const styles = {
   },
   loadingText: {
     fontSize: '18px',
+    marginBottom: '10px',
+  },
+  loadingSubtext: {
+    fontSize: '14px',
+    opacity: 0.8,
   },
   errorContainer: {
     minHeight: '100vh',
@@ -264,6 +189,19 @@ const styles = {
     alignItems: 'center',
     background: '#0f0f0f',
     color: 'white',
+    padding: '20px',
+    textAlign: 'center',
+  },
+  errorTitle: {
+    fontSize: '24px',
+    marginBottom: '10px',
+    color: '#ff6b6b',
+  },
+  errorMessage: {
+    fontSize: '16px',
+    opacity: 0.8,
+    marginBottom: '20px',
+    maxWidth: '600px',
   },
   retryButton: {
     background: '#6b46c1',
@@ -273,10 +211,9 @@ const styles = {
     borderRadius: '8px',
     fontSize: '16px',
     cursor: 'pointer',
-    marginTop: '20px',
   },
   header: {
-    background: 'linear-gradient(90deg, #1a1a1a 0%, #2d1b3a 100%)',
+    background: '#1a1a1a',
     padding: '15px 20px',
     position: 'sticky',
     top: 0,
@@ -299,102 +236,30 @@ const styles = {
   },
   nav: {
     display: 'flex',
-    gap: '30px',
-    '@media (max-width: 768px)': {
-      display: 'none',
-    },
+    gap: '20px',
   },
   navLink: {
     color: '#fff',
     textDecoration: 'none',
     fontSize: '16px',
     opacity: 0.8,
-    transition: 'opacity 0.2s',
   },
-  searchButton: {
-    background: 'none',
-    border: 'none',
-    color: 'white',
-    fontSize: '20px',
-    cursor: 'pointer',
-  },
-  hero: {
-    background: 'linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url(https://image.tmdb.org/t/p/original/wwemzKWzjKYJFfCeiB57q3r4Bcm.png)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    height: '400px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-  },
-  heroContent: {
-    maxWidth: '600px',
+  movieCount: {
+    maxWidth: '1400px',
+    margin: '20px auto 0',
     padding: '0 20px',
-  },
-  heroTitle: {
-    fontSize: '48px',
-    marginBottom: '10px',
-    '@media (max-width: 768px)': {
-      fontSize: '32px',
-    },
-  },
-  heroSubtitle: {
-    fontSize: '20px',
-    opacity: 0.8,
-    marginBottom: '30px',
-  },
-  heroButton: {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none',
-    padding: '15px 40px',
-    borderRadius: '30px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
+    color: '#999',
+    fontSize: '14px',
   },
   main: {
     maxWidth: '1400px',
-    margin: '0 auto',
-    padding: '40px 20px',
-  },
-  section: {
-    marginBottom: '60px',
-  },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-  },
-  sectionTitle: {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  premiumBadge: {
-    background: 'linear-gradient(135deg, #f5b042 0%, #f5a623 100%)',
-    color: '#000',
-    fontSize: '12px',
-    padding: '4px 8px',
-    borderRadius: '4px',
-    fontWeight: 'bold',
-  },
-  viewAll: {
-    color: '#6b46c1',
-    textDecoration: 'none',
-    fontSize: '14px',
+    margin: '20px auto 40px',
+    padding: '0 20px',
   },
   movieGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-    gap: '15px',
-    '@media (min-width: 1024px)': {
-      gridTemplateColumns: 'repeat(6, 1fr)',
-    },
+    gap: '20px',
   },
   movieCard: {
     cursor: 'pointer',
@@ -425,19 +290,7 @@ const styles = {
     fontWeight: 'bold',
     fontSize: '14px',
     color: 'white',
-    backgroundColor: '#4caf50',
     border: '2px solid white',
-  },
-  premiumTag: {
-    position: 'absolute',
-    top: '10px',
-    right: '10px',
-    background: 'linear-gradient(135deg, #f5b042 0%, #f5a623 100%)',
-    color: '#000',
-    fontSize: '10px',
-    padding: '4px 6px',
-    borderRadius: '4px',
-    fontWeight: 'bold',
   },
   movieInfo: {
     padding: '10px',
@@ -458,27 +311,10 @@ const styles = {
   },
   footer: {
     background: '#1a1a1a',
-    padding: '40px 20px 20px',
-    marginTop: '60px',
-  },
-  footerContent: {
-    maxWidth: '1400px',
-    margin: '0 auto',
-  },
-  footerLinks: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '30px',
-    flexWrap: 'wrap',
-    marginBottom: '20px',
-  },
-  footerLink: {
-    color: '#999',
-    textDecoration: 'none',
-    fontSize: '14px',
+    padding: '20px',
+    textAlign: 'center',
   },
   copyright: {
-    textAlign: 'center',
     color: '#666',
     fontSize: '12px',
     margin: 0,
